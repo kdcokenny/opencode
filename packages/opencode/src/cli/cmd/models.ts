@@ -1,7 +1,5 @@
 import { EOL } from "os"
 import type { Argv } from "yargs"
-import { ModelsDev } from "../../provider/models"
-import { Provider } from "../../provider/provider"
 import { bootstrap } from "../bootstrap"
 import { UI } from "../ui"
 import { cmd } from "./cmd"
@@ -24,14 +22,52 @@ export const ModelsCommand = cmd({
 				describe: "refresh the models cache from models.dev",
 				type: "boolean",
 			})
+			.option("base-catalog", {
+				describe: "deprecated: use `opencode base-catalog export`",
+				type: "boolean",
+				hidden: true,
+			})
+			.option("base-catalog-output", {
+				describe: "deprecated output override for base-catalog export",
+				type: "string",
+				hidden: true,
+			})
+			.option("base-catalog-generated-at", {
+				describe: "deprecated generatedAt override for base-catalog export",
+				type: "string",
+				hidden: true,
+			})
+			.option("base-catalog-models-path", {
+				describe: "deprecated models input path for base-catalog export",
+				type: "string",
+				hidden: true,
+			})
 	},
 	handler: async (args) => {
 		if (args.refresh) {
+			const { ModelsDev } = await import("../../provider/models")
 			await ModelsDev.refresh()
 			UI.println(UI.Style.TEXT_SUCCESS_BOLD + "Models cache refreshed" + UI.Style.TEXT_NORMAL)
 		}
 
+		if (args.baseCatalog) {
+			UI.println(
+				UI.Style.TEXT_WARNING +
+					"`opencode models --base-catalog` is deprecated. Use `opencode base-catalog export` instead." +
+					UI.Style.TEXT_NORMAL,
+			)
+
+			const { BaseCatalogExportCommand } = await import("./base-catalog")
+			await BaseCatalogExportCommand.handler({
+				modelsPath: args.baseCatalogModelsPath,
+				output: args.baseCatalogOutput,
+				generatedAt: args.baseCatalogGeneratedAt,
+			} as any)
+			return
+		}
+
 		await bootstrap(process.cwd(), async () => {
+			const { Provider } = await import("../../provider/provider")
 			const providers = await Provider.list()
 
 			function printModels(providerID: string, verbose?: boolean) {
